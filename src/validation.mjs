@@ -58,9 +58,10 @@ export function validateScenario(value, tuning, night = 1) {
   const lanternIds = new Set();
   return fields(value, 'scenario', {
     player: (value) => fields(value, 'scenario.player', {
-      pos, carried: (n) => integer(n) && n <= tuning.carry_capacity,
+      pos, carried: (n) => integer(n) && n <= tuning.capacity_max,
       flames: (n) => integer(n) && n <= tuning.flames,
-      invuln_ticks: integer, dash_cd_ticks: integer, pulse_cd_ticks: integer, charm_ticks: integer
+      invuln_ticks: integer, dash_cd_ticks: integer, pulse_cd_ticks: integer, charm_ticks: integer,
+      successful_lights: integer
     }),
     random_motes: boolean,
     random_shades: boolean,
@@ -68,7 +69,8 @@ export function validateScenario(value, tuning, night = 1) {
     wind_enabled: boolean,
     motes: (list) => entries(list, 'scenario.motes', (item, path) => check(pos(item), path)),
     shades: (list) => entities(list, 'scenario.shades', {
-      state: (s) => ['spawning', 'wander', 'chase', 'recoil', 'stunned'].includes(s), state_ticks_left: integer
+      state: (s) => ['spawning', 'wander', 'chase', 'recoil', 'stunned', 'drain'].includes(s), state_ticks_left: integer,
+      target_lantern_id: (id) => typeof id === 'string' && /^L[1-7]$/.test(id) && Number(id.slice(1)) <= MAPS[night].lanterns.length
     }),
     drifters: (list) => entities(list, 'scenario.drifters', {
       state: (s) => ['idle', 'chase', 'flee', 'removed'].includes(s), state_ticks_left: integer,
@@ -78,7 +80,8 @@ export function validateScenario(value, tuning, night = 1) {
     lanterns: (list) => entries(list, 'scenario.lanterns', (item, path) => {
       fields(item, path, { id: (id) => typeof id === 'string' && /^L[1-7]$/.test(id) &&
         Number(id.slice(1)) <= MAPS[night].lanterns.length, pos,
-        deposited: (n) => integer(n) && n <= tuning.lantern_cost, lit: boolean });
+        deposited: (n) => integer(n) && n <= (item.ever_lit && !item.lit ? tuning.relight_cost : tuning.lantern_cost),
+        lit: boolean, ever_lit: boolean, fuel: (n) => number(n) && n >= 0 && n <= tuning.fuel_max });
       check(Object.hasOwn(item, 'id') && !lanternIds.has(item.id), `${path}.id`);
       lanternIds.add(item.id);
     }),

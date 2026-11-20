@@ -89,8 +89,8 @@ function evacuationTarget(pos, zones, radius) {
 }
 
 export function updateSanctuaries(game) {
-  const zones = game.lanterns.filter(({ lit }) => lit);
-  const changed = game.safeZones.length !== zones.length;
+  const zones = game.lanterns.filter((lamp) => game.isSafe(lamp));
+  const changed = game.safeZones.length !== zones.length || zones.some((lamp, i) => game.safeZones[i] !== lamp);
   game.safeZones = zones;
   for (const shade of game.shades) {
     if (!insideZone(shade.pos, zones, game.tuning.safe_radius)) {
@@ -113,12 +113,13 @@ export function applyPulse(game, emit) {
     Math.hypot(pos[0] - player.pos[0], pos[1] - player.pos[1] - 0.8, pos[2] - player.pos[2]) <= tuning.pulse_radius + EPSILON;
   const stunned = game.shades.filter(inRange).sort(sortId);
   for (const shade of stunned) {
+    game.score += shade.state === 'drain' ? tuning.score.per_drain_stun : tuning.score.per_stun;
     shade.state = 'stunned';
+    shade.drainTicks = 0;
     shade.stateUntil = time + Math.round(tuning.pulse_stun_s * TICK_RATE);
     shade.pushUntil = time + PUSH_TICKS;
     shade.push = unitXZ(player.pos, shade.pos).map((axis) => axis * tuning.pulse_push_m / PUSH_TICKS);
   }
-  game.score += stunned.length * tuning.score.per_stun;
   emit('pulse', { stunned_ids: stunned.map(({ id }) => id) });
   for (const drifter of game.drifters) {
     if (!inRange(drifter)) continue;
@@ -141,6 +142,7 @@ export function applyPulse(game, emit) {
 export function advanceEnemyTimers(game) {
   for (const shade of game.shades) {
     if (['spawning', 'recoil', 'stunned'].includes(shade.state) && shade.stateUntil <= game.simTick) {
+      if (shade.state === 'stunned') shade.recoveredAt = game.simTick;
       shade.state = 'wander';
     }
   }
@@ -148,10 +150,37 @@ export function advanceEnemyTimers(game) {
     drifter.state !== 'removed' && (drifter.state !== 'flee' || game.simTick < drifter.stateUntil));
 }
 
-export function moveEnemies(game) {
+function objective(game, shade) {
+  let target;
+  let distance;
+  let priority = 2;
+  for (const lamp of game.lanterns) {
+    const rank = lamp.lit ? Number(game.isSafe(lamp)) * 2 : 1;
+    if (rank >= 2) continue;
+    const gap = xz(shade.pos, lamp.pos);
+    if (rank < priority || (rank === priority && gap < distance - EPSILON)) {
+      priority = rank;
+      distance = gap;
+      target = lamp;
+    }
+  }
+  return target;
+}
+
+export function moveEnemies(game, wanderOnly = false) {
   const { player, tuning, simTick: time, safeZones } = game;
   const stride = (game.night === 3 ? tuning.shade_speed_night3 : tuning.shade_speed) / TICK_RATE;
   for (const shade of game.shades) {
+    const gap = xz(shade.pos, player.pos);
+    if (shade.state === 'drain') {
+      const lamp = shade.targetLantern;
+      if (!lamp?.lit || game.isSafe(lamp) || xz(lamp.pos, shade.pos) > 2 + EPSILON) {
+        shade.state = 'wander';
+        shade.recoveredAt = time;
+      } else if (gap <= 6 + EPSILON) shade.state = 'chase';
+      else continue;
+      shade.drainTicks = 0;
+    }
     if (shade.evacuation) {
       const { target, until } = shade.evacuation;
       const left = Math.max(1, until - time);
@@ -167,12 +196,18 @@ export function moveEnemies(game) {
       }
       continue;
     }
-    const gap = xz(shade.pos, player.pos);
     if (shade.state === 'chase' && gap > 18 + EPSILON) shade.state = 'wander';
-    if (shade.state === 'wander' && gap <= 12 + EPSILON) shade.state = 'chase';
-    const axis = shade.state === 'chase' ? unitXZ(shade.pos, player.pos, [0, 0]) : direction(shade.heading);
-    const distance = shade.state === 'chase' ? Math.min(gap, stride) : stride;
+    if (!wanderOnly && shade.state === 'wander' && shade.recoveredAt !== time && gap <= 12 + EPSILON) shade.state = 'chase';
+    const lamp = shade.state === 'wander' ? objective(game, shade) : undefined;
+    const target = lamp?.pos ?? (shade.state === 'chase' ? player.pos : undefined);
+    const axis = target ? unitXZ(shade.pos, target, [0, 0]) : direction(shade.heading);
+    const distance = target ? Math.min(xz(shade.pos, target), stride) : stride;
     const fraction = moveShade(game, shade, axis[0] * distance, axis[1] * distance, safeZones, tuning.safe_radius);
+    if (!wanderOnly && lamp?.lit && xz(shade.pos, lamp.pos) <= 2 + EPSILON && shade.recoveredAt !== time) {
+      shade.state = 'drain';
+      shade.targetLantern = lamp;
+      shade.drainTicks = 0;
+    }
     if (shade.state === 'wander' && fraction < 0.8) shade.heading += 137.5;
   }
   for (const drifter of game.drifters) {

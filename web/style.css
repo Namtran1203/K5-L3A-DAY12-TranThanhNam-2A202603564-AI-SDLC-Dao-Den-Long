@@ -87,6 +87,10 @@ button:hover { background: #ffdc9d; }
 #settings-fields label { display: grid; grid-template-columns: 1fr minmax(70px, 42%) 3em; align-items: center; gap: 9px; font-size: .87rem; }
 #settings-fields input { width: 100%; accent-color: var(--gold); }
 #settings-fields output { color: var(--gold); }
+#settings-fields .toggle { display: flex; align-items: center; }
+#settings-fields .toggle input { width: auto; }
+.color-assist { --danger: #FFFFFF; }
+.color-assist #time.danger::before { content: "⚠ "; }
 @media (prefers-reduced-motion: reduce) { #time.danger { animation: none; } }
 button:focus-visible { outline: 2px solid white; outline-offset: 4px; }
 button:disabled { opacity: .55; cursor: wait; }

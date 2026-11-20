@@ -240,8 +240,15 @@ function makeLantern() {
   const core = mesh(root, sphere, material.core, 0, 2.48, 0.62, 0.24, 0.36, 0.24);
   const safety = mesh(root, new THREE.RingGeometry(0.985, 1, 72), glow('#FFB347', 0.32), 0, 0.025, 0);
   safety.rotation.x = -Math.PI / 2;
+  const tear = mesh(root, box, material.bronze, 0.24, 2.38, 0.71, 0.12, 0.56, 0.08);
+  tear.rotation.z = 0.40;
+  const bar = new THREE.Group();
+  bar.position.y = 3.83;
+  mesh(bar, box, material.bronze, 0, 0, 0, 1.52, 0.19, 0.06);
+  const oil = mesh(bar, box, glow('#FFB347'), 0, 0, 0.06, 1.42, 0.115, 0.037);
+  root.add(bar);
   actors.add(root);
-  return { root, paper, light, core, safety };
+  return { root, paper, light, core, safety, tear, bar, oil };
 }
 
 function makeShade() {
@@ -250,9 +257,9 @@ function makeShade() {
   for (const x of [-0.19, 0.19]) {
     mesh(root, sphere, material.shadeEye, x, 0.88, 0.43, 0.067, 0.11, 0.065);
   }
-  halo(root, '#7A3CFF', 2.65, 0.73, 0.34);
+  const glowRing = halo(root, '#7A3CFF', 2.65, 0.73, 0.34);
   actors.add(root);
-  return { root, body };
+  return { root, body, glowRing };
 }
 
 function makeFireflies() {
@@ -381,7 +388,8 @@ function loadSettings() {
   catch { return { volume: 0.4, sensitivity: 1 }; }
   return {
     volume: Number.isFinite(saved?.volume) ? Math.max(0, Math.min(1, saved.volume)) : 0.4,
-    sensitivity: Number.isFinite(saved?.sensitivity) ? Math.max(0.25, Math.min(2, saved.sensitivity)) : 1
+    sensitivity: Number.isFinite(saved?.sensitivity) ? Math.max(0.25, Math.min(2, saved.sensitivity)) : 1,
+    colorAssist: Boolean(saved?.colorAssist)
   };
 }
 
@@ -420,7 +428,7 @@ async function main() {
   const settings = loadSettings();
   const sounds = new Sounds(settings.volume);
   const pack = find('mote-slots');
-  for (let i = 0; i < tuning.carry_capacity; i++) pack.append(document.createElement('i'));
+  for (let i = 0; i < tuning.capacity_max; i++) pack.append(document.createElement('i'));
 
   let game = new Game(tuning, 2026);
   let drawnNight;
@@ -448,12 +456,12 @@ async function main() {
     const night = 'Đêm ' + game.night + ' · ' + game.map.name;
     const summary = 'Điểm đêm này ' + game.score + ' · Tổng điểm ' + total + '.';
     const usual = {
-      menu: ['', 'Đảo Đèn Lồng', 'Cùng Mây thắp lại đèn lồng trên ba hòn đảo trước khi trời sáng.', 'Bắt đầu'],
+      menu: ['', 'Đảo Đèn Lồng', 'Cùng Mây giữ đủ đèn sáng trên ba hòn đảo tới bình minh.', 'Bắt đầu'],
       intro: ['Đêm ' + game.night, game.map.name, coach[game.night - 1], 'Vào đảo'],
       paused: [night, 'Tạm dừng', '', 'Tiếp tục'],
       settings: ['', 'Cài đặt', '', 'Quay lại'],
       result: [night, won ? 'Đèn đã bừng sáng' : 'Ánh sáng đã tắt', (won ? '' :
-        (game.player.flames ? 'Bình minh đã đến. ' : 'Mây đã hết Ngọn Lửa. ')) + summary, won ? 'Đêm kế tiếp' : 'Chơi lại Đêm'],
+        (game.player.flames ? 'Bình minh đến khi đảo còn thiếu đèn sáng. ' : 'Mây đã hết Ngọn Lửa. ')) + summary, won ? 'Đêm kế tiếp' : 'Chơi lại Đêm'],
       dawn: ['', 'Bình Minh', 'Cả ba hòn đảo đã sáng. Tổng điểm ' + total + '.', 'Về menu']
     };
     overlay.hidden = next === 'playing';
@@ -547,6 +555,7 @@ async function main() {
   const messages = {
     lantern_lit: 'Một Đèn Lồng Lớn đã sáng', player_hit: 'Mây mất một Ngọn Lửa',
     pulse: 'Mây tỏa sáng', charm_picked: 'Bùa Gió đã kích hoạt',
+    refuel: 'Đã châm dầu', lantern_out: 'Một Đèn Lồng Lớn đã cạn dầu',
     drifter_steal: 'Gió Lạc đã cướp đom đóm', drifter_drop: 'Gió Lạc đã thả đom đóm'
   };
 
@@ -636,8 +645,19 @@ async function main() {
     synchronize(lanterns, game.lanterns, makeLantern, (model, lantern) => {
       model.root.position.fromArray(lantern.pos);
       model.paper.material = lantern.lit ? material.paperOn : material.paperOff;
-      model.light.visible = model.core.visible = model.safety.visible = lantern.lit;
+      const weak = lantern.lit && !game.isSafe(lantern);
+      const blink = !weak || Math.floor(seconds * 2) % 2 === 0;
+      model.root.scale.y = lantern.lit ? 1 : 0.8;
+      model.tear.visible = !lantern.lit;
+      model.light.visible = model.core.visible = lantern.lit && blink;
+      if (weak && !blink) model.paper.material = material.paperOff;
+      model.safety.visible = game.isSafe(lantern);
       model.safety.scale.setScalar(tuning.safe_radius);
+      model.bar.visible = lantern.lit && blink;
+      model.bar.quaternion.copy(camera.quaternion);
+      const oil = lantern.fuel / (TICK_RATE * tuning.fuel_max);
+      model.oil.scale.x = 1.42 * oil;
+      model.oil.position.x = -0.71 * (1 - oil);
     });
     const light = lit.sort((a, b) => xz(a.pos, game.player.pos) - xz(b.pos, game.player.pos))[0];
     nearestLight.intensity = light ? 74 : 0;
@@ -648,6 +668,7 @@ async function main() {
       model.root.position.y += 0.14 * Math.sin(seconds * 3.2 + index);
       model.root.rotation.y = Math.atan2(x - shade.pos[0], z - shade.pos[2]);
       model.body.material = shade.state === 'stunned' ? material.stunned : material.shade;
+      model.glowRing.material.color.set(settings.colorAssist ? '#00B3FF' : '#7A3CFF');
       model.root.scale.setScalar(shade.state === 'spawning' ? 0.72 : 1);
     });
     synchronize(drifters, game.drifters, makeDrifter, (model, drifter) => {
@@ -693,7 +714,7 @@ async function main() {
     const cooldown = (deadline) => deadline > game.simTick ? ((deadline - game.simTick) / 60).toFixed(1) + 's' : 'Sẵn sàng';
     const charmLeft = Math.max(0, game.player.windCharmUntil / 60 - seconds);
     const values = {
-      flames: game.player.flames + '/' + tuning.flames, carried: game.player.carried + '/' + tuning.carry_capacity,
+      flames: game.player.flames + '/' + tuning.flames, carried: game.player.carried + '/' + game.capacity(),
       lit: lit + '/' + game.lanterns.length, time: clock, score: String(game.score),
       dash: charmLeft ? 'Sẵn sàng' : cooldown(game.player.dashReadyAt),
       pulse: cooldown(game.player.pulseReadyAt), charm: 'Bùa Gió · ' + charmLeft.toFixed(1) + 's'
@@ -703,10 +724,15 @@ async function main() {
     }
     hud.time.classList.toggle('danger', remaining <= 30);
     hud.charm.hidden = charmLeft === 0;
-    for (const [i, slot] of Array.from(pack.children).entries()) slot.classList.toggle('filled', i < game.player.carried);
+    for (const [i, slot] of Array.from(pack.children).entries()) {
+      slot.classList.toggle('filled', i < game.player.carried);
+      slot.hidden = i >= game.capacity();
+    }
     const lamp = game.nearestLantern();
     prompt.hidden = screen !== 'playing' || !lamp;
-    if (!prompt.hidden) prompt.textContent = 'E — Nạp ánh sáng (' + lamp.deposited + '/' + tuning.lantern_cost + ')';
+    if (!prompt.hidden) prompt.textContent = lamp.lit
+      ? 'E — Châm dầu (' + Math.floor(lamp.fuel / TICK_RATE) + '%)'
+      : 'E — Nạp ánh sáng (' + lamp.deposited + '/' + (lamp.everLit ? tuning.relight_cost : tuning.lantern_cost) + ')';
     if (notice.textContent && now > noticeUntil) notice.textContent = '';
   }
 
@@ -719,6 +745,19 @@ async function main() {
   });
   updateSettings('volume', 'volume');
   updateSettings('sensitivity', 'sensitivity');
+  const colorAssist = find('color-assist');
+  function syncPalette() {
+    document.documentElement.classList.toggle('color-assist', Boolean(settings.colorAssist));
+    material.shadeEye.color.set(settings.colorAssist ? '#00B3FF' : '#7A3CFF');
+  }
+  colorAssist.checked = Boolean(settings.colorAssist);
+  syncPalette();
+  colorAssist.addEventListener('change', () => {
+    settings.colorAssist = colorAssist.checked;
+    syncPalette();
+    try { localStorage.setItem('lantern-settings', JSON.stringify(settings)); }
+    catch { /* Preferences remain active for this tab. */ }
+  });
 
   const controls = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown',
     'ArrowRight', 'Space', 'KeyE', 'KeyQ', 'ShiftLeft', 'ShiftRight']);

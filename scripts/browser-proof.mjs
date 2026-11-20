@@ -81,10 +81,12 @@ try {
   await page.locator('#settings').click();
   await page.locator('#volume').fill('0.55');
   await page.locator('#sensitivity').fill('1.35');
+  await page.locator('#color-assist').check();
   await page.reload();
   await page.locator('#settings').click();
   assert.equal(await page.locator('#volume').inputValue(), '0.55');
   assert.equal(await page.locator('#sensitivity').inputValue(), '1.35');
+  assert.equal(await page.locator('#color-assist').isChecked(), true);
   await screenshot(page, 'settings');
   await start.click();
 
@@ -95,7 +97,7 @@ try {
     assert.match(await page.locator('#overlay-text').textContent(), /^Ông Đăng:/);
     if (night === 3) await screenshot(page, 'intro-night-three');
     await start.click();
-    assert.equal(await page.locator('#hud #mote-slots i').count(), 10);
+    assert.equal(await page.locator('#hud #mote-slots i:visible').count(), 10);
     await expectText(page, '#lit', '0/' + count);
     if (night === 1) {
       await page.locator('#guide').waitFor({ state: 'visible' });
@@ -126,6 +128,16 @@ try {
 
     await sampleFps(page, night);
     await screenshot(page, 'night-' + night);
+    if (night === 1) {
+      await page.evaluate(() => {
+        window.proofScenario = { lanterns: [
+          { id: 'L1', pos: [-2, 0, 8], lit: true, fuel: 25 },
+          { id: 'L2', pos: [2, 0, 8] }
+        ], shades: [{ pos: [-4, 0, 7], state: 'stunned' }], random_shades: false };
+      });
+      await page.waitForTimeout(260);
+      await screenshot(page, 'oil-and-color');
+    }
     if (night === 2) {
       await page.evaluate(() => {
         window.proofScenario = { player: { pos: [19, 0, 0] },
@@ -148,7 +160,7 @@ try {
     await page.evaluate(({ night, count }) => {
       const lamps = Array.from({ length: count }, (_, i) =>
         i ? { id: 'L' + (i + 1), lit: true } : { id: 'L1', pos: [0, 0, 1] });
-      window.proofScenario = { lanterns: lamps, player: { carried: 10 }, time_left_s: 20 + night,
+      window.proofScenario = { lanterns: lamps, player: { carried: 10 }, time_left_s: 1.65,
         random_shades: false, random_drifters: false, random_motes: false };
     }, { night, count });
     await page.locator('#prompt').waitFor({ state: 'visible' });
@@ -156,8 +168,8 @@ try {
     assert.equal(await page.locator('#time').evaluate((item) => item.classList.contains('danger')), true);
     await tap(page, 'e');
     await expectText(page, '#lit', count + '/' + count);
-    total += Number(await page.locator('#score').textContent());
     await expectText(page, '#overlay-title', night === 3 ? 'Bình Minh' : 'Đèn đã bừng sáng');
+    total += Number(await page.locator('#score').textContent());
   }
   assert.match(await page.locator('#overlay-text').textContent(), new RegExp('Tổng điểm ' + total));
   await screenshot(page, 'dawn');

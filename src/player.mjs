@@ -13,6 +13,7 @@ export function makePlayer(night, tuning, start = {}) {
   return {
     pos, vel: [0, 0, 0], facing: [0, 1], grounded: Math.abs(pos[1] - floor) <= EPSILON,
     carried: start.carried ?? 0, flames: start.flames ?? tuning.flames,
+    successfulLights: start.successful_lights ?? 0,
     dashUntil: 0, invulnerableUntil: start.invuln_ticks ?? 0, respawnAt: 0,
     windCharmUntil: start.charm_ticks ?? 0, pulseReadyAt: start.pulse_cd_ticks ?? 0,
     dashReadyAt: start.dash_cd_ticks ?? 0, dashDirection: [0, 1],

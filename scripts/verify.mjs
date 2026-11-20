@@ -5,7 +5,6 @@ import { cpus, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { nightOneRoute } from './night-one-route.mjs';
 
 const args = process.argv.slice(2);
 if (args.length !== 0 && (args.length !== 2 || args[0] !== '--record' || !args[1])) {
@@ -47,16 +46,27 @@ try {
   if (saved) mkdirSync(saved, { recursive: true });
   node(['--test', '--test-reporter=spec']);
 
-  const { frames } = nightOneRoute(tuning, seed);
-  const replay = sample('night-one-inputs.json',
-    '{"frames":[\n' + frames.map((frame) => JSON.stringify(frame)).join(',\n') + '\n]}\n');
-  const first = run(1, 18000, 600, ['--inputs', replay]);
-  const second = run(1, 18000, 600, ['--inputs', replay]);
+  const scenario = sample('oil-scenario.json', JSON.stringify({
+    random_motes: false, random_shades: false, time_left_s: 1,
+    player: { carried: 6 },
+    lanterns: [{ id: 'L1', pos: [0, 0, 0], lit: true, fuel: 1 / 60 },
+      { id: 'L2', lit: true }, { id: 'L3', lit: true },
+      { id: 'L4', lit: true, fuel: 28 }],
+    shades: [{ pos: [-14.7, 0, -20.2], state: 'drain', target_lantern_id: 'L4' }]
+  }, null, 2) + '\n');
+  const replay = sample('oil-inputs.json', JSON.stringify({ frames: [
+    { tick: 0, interact: true }, { tick: 1, interact: false }, { tick: 2, interact: true }
+  ] }, null, 2) + '\n');
+  const options = ['--scenario', scenario, '--inputs', replay];
+  const first = run(1, 60, 15, options);
+  const second = run(1, 60, 15, options);
   assert.ok(first.output.equals(second.output), 'Hai lần chạy CLI phải giống từng byte');
   const nightOne = records(first.output);
   assert.equal(nightOne.at(-1).state, 'won');
-  assert.equal(nightOne.filter(({ name }) => name === 'lantern_lit').length, 5);
-  sample('night-one.jsonl', first.output);
+  for (const name of ['lantern_out', 'lantern_lit', 'refuel', 'fuel_drain']) {
+    assert.ok(nightOne.some((event) => event.name === name));
+  }
+  sample('oil-dawn.jsonl', first.output);
 
   const nightTwoScenario = sample('night-two-scenario.json', JSON.stringify({
     random_motes: false, random_shades: false, random_drifters: false,
@@ -75,16 +85,17 @@ try {
   sample('night-two.jsonl', nightTwo.output);
 
   const endurance = sample('night-three-scenario.json', JSON.stringify({
-    wind_enabled: false, lanterns: [{ id: 'L1', pos: [0, 0, 0], lit: true }]
+    wind_enabled: false, player: { invuln_ticks: 18001 },
+    lanterns: [{ id: 'L1', pos: [0, 0, 0], lit: true }]
   }, null, 2) + '\n');
-  const full = run(3, 21600, 10, ['--scenario', endurance]);
+  const full = run(3, 18000, 10, ['--scenario', endurance]);
   const end = JSON.parse(full.output.toString('utf8').trimEnd().split('\n').at(-1));
-  assert.equal(end.ticks, 21600);
+  assert.equal(end.ticks, 18000);
   assert.ok(full.duration <= 30_000, 'Benchmark headless vượt 30 giây');
   const sha256 = createHash('sha256').update(first.output).digest('hex');
   const report = [
     'node --test --test-reporter=spec: tất cả kiểm thử đạt',
-    'Replay Đêm 1 chuẩn seed ' + seed + ': ' + JSON.stringify(nightOne.at(-1)),
+    'Scenario dầu và bình minh seed ' + seed + ': ' + JSON.stringify(nightOne.at(-1)),
     'Hai lượt headless sinh JSONL giống từng byte, SHA-256 ' + sha256,
     'Kịch bản Đêm 2: ' + names.slice(0, 9).join(', '),
     'Đêm 3 ' + end.ticks + ' tick, snapshot mỗi 10 tick: ' + full.duration.toFixed(1) + ' ms',

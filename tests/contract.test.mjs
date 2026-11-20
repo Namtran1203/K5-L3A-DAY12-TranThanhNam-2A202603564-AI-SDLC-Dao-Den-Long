@@ -74,21 +74,23 @@ test('nhặt đúng bán kính và độ cao, giới hạn sức chứa, giữ E
   assert.deepEqual(events(result, 'deposit')[0].data, { lantern_id: 'L1', amount: 10, deposited: 10 });
   assert.equal(snapshot(result, 3).player.carried, 4);
   assert.equal(snapshot(result, 3).motes_active, 1);
-  assert.equal(snapshot(result, 3).score, 200);
+  assert.equal(snapshot(result, 3).score, 150);
+  assert.equal(snapshot(result, 3).player.capacity, 12);
 });
 
 test('scenario ghi đè đúng id, nạp một phần, thắp đèn cuối và tính thưởng', () => {
   const result = execute(50, { scenario: {
-    ...empty, time_left_s: 30, player: { carried: 8 },
+    ...empty, time_left_s: 0.5, player: { carried: 8 },
     lanterns: [{ id: 'L1', pos: [0, 0, 2], deposited: 2 },
       ...[2, 3, 4, 5].map((n) => ({ id: 'L' + n, lit: true }))]
   }, frames: [{ tick: 0, interact: true }] });
-  const expected = 80 + tuning.score.per_lantern + 29 * tuning.score.per_second_left + 3 * tuning.score.per_flame_left;
+  const expected = 40 + tuning.score.per_lantern + 5 * (50 + 99) + 3 * tuning.score.per_flame_left;
   assert.equal(snapshot(result, 0).score, 0);
   assert.deepEqual(events(result).map(({ name, tick }) => [name, tick]),
-    [['night_start', 0], ['deposit', 1], ['lantern_lit', 1], ['game_over', 1]]);
-  assert.deepEqual(events(result, 'game_over')[0].data, { result: 'won', reason: 'all_lit' });
-  assert.deepEqual(result.records.at(-1), { type: 'end', ticks: 1, state: 'won', score: expected });
+    [['night_start', 0], ['deposit', 1], ['lantern_lit', 1], ['game_over', 30]]);
+  assert.equal(snapshot(result, 1).state, 'playing');
+  assert.deepEqual(events(result, 'game_over')[0].data, { result: 'won', reason: 'dawn_survived' });
+  assert.deepEqual(result.records.at(-1), { type: 'end', ticks: 30, state: 'won', score: expected });
 });
 
 test('tỏa sáng đúng biên, đẩy lùi, thời gian choáng và hồi chiêu', () => {
@@ -100,7 +102,7 @@ test('tỏa sáng đúng biên, đẩy lùi, thời gian choáng và hồi chiê
   assert.deepEqual(events(result, 'pulse')[0].data, { stunned_ids: ['edge'] });
   assert.deepEqual(snapshot(result, 15).shades[0], { id: 'edge', pos: [9, 0.8, 0], state: 'stunned' });
   assert.equal(snapshot(result, 120).shades[0].state, 'stunned');
-  assert.equal(snapshot(result, 121).shades[0].state, 'chase');
+  assert.equal(snapshot(result, 121).shades[0].state, 'wander');
   assert.equal(snapshot(result, 181).player.carried, 0);
 });
 
@@ -323,10 +325,46 @@ test('Đảo Chuông có vách, dốc, bục tầng 2, tháp và gió 300 tick',
 test('thắng đúng tick bình minh nếu còn lửa; hết lửa luôn thua', () => {
   const lanterns = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ id: 'L' + n, lit: true }));
   for (const [night, count] of [[1, 5], [2, 6], [3, 7]]) {
-    const scenario = { ...empty, time_left_s: 1 / 60, lanterns: lanterns.slice(0, count) };
+    const required = Math.ceil(count * 0.6);
+    const scenario = { ...empty, time_left_s: 1 / 60, lanterns: lanterns.slice(0, required) };
     const victory = execute(4, { night, scenario });
-    assert.deepEqual(victory.records.at(-1), { type: 'end', ticks: 1, state: 'won', score: 150 });
+    assert.deepEqual(victory.records.at(-1), { type: 'end', ticks: 1, state: 'won', score: 150 + 149 * required });
     const defeat = execute(4, { night, scenario: { ...scenario, player: { flames: 0 } } });
     assert.equal(events(defeat, 'game_over')[0].data.reason, 'no_flames');
+    const startsLow = execute(4, { night, scenario: { ...scenario,
+      lanterns: [...scenario.lanterns.slice(0, -1), { id: 'L' + required, lit: true, fuel: 1 / 60 }] } });
+    assert.equal(events(startsLow, 'lantern_out')[0].tick, 1);
+    assert.equal(events(startsLow, 'game_over')[0].data.reason, 'dawn');
   }
+});
+
+test('hết dầu trước tương tác, thắp lại giá 5, châm dầu và tăng sức chứa có trần', () => {
+  const result = execute(6, { scenario: { ...empty, player: { carried: 10, successful_lights: 4 },
+    lanterns: [{ id: 'L1', pos: [0, 0, 0], lit: true, fuel: 1 / 60 }] },
+  frames: [{ tick: 0, interact: true }, { tick: 1, interact: false }, { tick: 2, interact: true }] });
+  assert.deepEqual(events(result).slice(1).map(({ name }) => name), ['lantern_out', 'deposit', 'lantern_lit', 'refuel']);
+  assert.deepEqual(events(result, 'lantern_lit')[0].data, { lantern_id: 'L1', relight: true });
+  assert.equal(snapshot(result, 1).lanterns[0].fuel, 100);
+  assert.equal(snapshot(result, 1).lanterns[0].relit_count, 1);
+  assert.equal(snapshot(result, 1).player.capacity, 20);
+  assert.deepEqual(events(result, 'refuel')[0].data, { lantern_id: 'L1', amount: 1, fuel: 100 });
+  assert.equal(snapshot(result, 3).score, 70);
+});
+
+test('hút cộng dồn, báo đúng 60 tick và châm dầu tái lập vùng an toàn', () => {
+  const scenario = { ...empty, player: { pos: [0, 0, 0] },
+    lanterns: [{ id: 'L1', pos: [25, 0, 0], lit: true, fuel: 25 }],
+    shades: [1, 2].map((i) => ({ id: 'S' + i, pos: [25 + i / 2, 0, 0], state: 'drain', target_lantern_id: 'L1' })) };
+  const drained = execute(60, { scenario });
+  assert.equal(snapshot(drained, 60).lanterns[0].fuel, 14);
+  assert.deepEqual(events(drained, 'fuel_drain').map(({ tick, data }) => [tick, data.shade_id, data.fuel]),
+    [[60, 'S1', 14], [60, 'S2', 14]]);
+  const filled = execute(31, { scenario: { ...scenario, player: { pos: [25, 0, 0], carried: 1 } },
+    frames: [{ tick: 0, interact: true }] });
+  assert.equal(snapshot(filled, 1).lanterns[0].fuel, 34.8);
+  assert.equal(events(filled, 'player_hit').length, 0);
+  assert.ok(snapshot(filled, 30).shades.every(({ pos }) => Math.abs(pos[0] - 25) >= 5.999));
+  const pulse = execute(1, { scenario: { ...scenario, player: { pos: [21.2, 0, 0], carried: 3 } },
+    frames: [{ tick: 0, pulse: true }] });
+  assert.equal(snapshot(pulse, 1).score, 30);
 });

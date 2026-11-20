@@ -1,0 +1,10 @@
+Chromium 157.0.4341.60 · win32 · v26.13.0 · AMD Ryzen 7 5800H with Radeon Graphics
+Đã kiểm tra menu, lời Ông Đăng, HUD, tạm dừng/tiếp tục/chơi lại, lưu âm lượng và độ nhạy qua reload.
+Đã ghi nhận Web Audio tạo nốt khi chạy nền, nhảy và lướt.
+Đã dùng scenario ở bước chốt đêm để kiểm tra thắng, thua, chuyển ba đêm và Bình Minh (tổng 3564 điểm).
+FPS requestAnimationFrame trong 5 giây chơi bình thường mỗi đêm, canvas 1280×720, DPR 1.
+WebGL renderer: ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001638) Direct3D11 vs_5_0 ps_5_0, D3D11)
+Đêm 1: 144.0 FPS
+Đêm 2: 144.0 FPS
+Đêm 3: 144.0 FPS
+Trung bình ba mẫu: 144.0 FPS

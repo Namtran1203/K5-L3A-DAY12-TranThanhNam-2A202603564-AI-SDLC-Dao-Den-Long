@@ -3,6 +3,7 @@ import { EPSILON, MAPS, xz } from './maps.mjs';
 import { CHARM_RESPAWN, CHARM_TICKS, TICK_RATE, fallOrRespawn, makePlayer, touches, updatePlayer } from './player.mjs';
 
 export { TICK_RATE };
+export const displayedFuel = (units) => Math.round(units / (TICK_RATE / 10)) / 10;
 export const DEFAULT_INPUT = Object.freeze({
   move: Object.freeze([0, 0]), cam_yaw_deg: 0, jump: false, interact: false, pulse: false, dash: false, pause: false
 });
@@ -17,7 +18,7 @@ const WIND_ACTIVE_TICKS = 300;
 const roundVector = (values) => values.map((value) => Math.round(value * 1000) / 1000);
 const secondsLeft = (deadline, tick) => Math.max(0, deadline - tick) / TICK_RATE;
 
-function seededRandom(seed) {
+export function seededRandom(seed) {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -53,8 +54,11 @@ export class Game {
     this.lanterns = this.map.lanterns.map((pos, index) => {
       const id = 'L' + (index + 1);
       const update = scenario.lanterns?.find((item) => item.id === id);
+      const cost = update?.ever_lit && !update?.lit ? tuning.relight_cost : tuning.lantern_cost;
       const deposited = update?.deposited ?? (update?.lit ? tuning.lantern_cost : 0);
-      return { id, pos: [...(update?.pos ?? pos)], deposited, lit: update?.lit ?? (deposited === tuning.lantern_cost) };
+      const lit = update?.lit ?? (deposited >= cost);
+      return { id, pos: [...(update?.pos ?? pos)], deposited, lit, everLit: lit || Boolean(update?.ever_lit),
+        relitCount: 0, fuel: lit ? Math.round((update?.fuel ?? tuning.fuel_max) * TICK_RATE) : 0 };
     });
     this.safeZones = [];
     this.newMoteId = idSource([], 'M');
@@ -85,11 +89,12 @@ export class Game {
     });
   }
 
-  makeShade({ id, pos, state = 'chase', state_ticks_left }) {
+  makeShade({ id, pos, state = 'chase', state_ticks_left, target_lantern_id }) {
     return {
       id: this.newShadeId(id), pos: [...pos], state,
       stateUntil: this.simTick + (state_ticks_left ?? { spawning: 1, recoil: 60, stunned: 120 }[state] ?? 0),
-      heading: this.random() * 360, pushUntil: 0, push: [0, 0], evacuation: null
+      heading: this.random() * 360, pushUntil: 0, push: [0, 0], evacuation: null,
+      targetLantern: this.lanterns.find((lamp) => lamp.id === target_lantern_id), drainTicks: 0, recoveredAt: -1
     };
   }
 
@@ -111,7 +116,8 @@ export class Game {
     let distance = Infinity;
     // Lanterns are in id order, so the first one wins a distance tie.
     for (const lantern of this.lanterns) {
-      if (lantern.lit || !touches(lantern.pos, this.player.pos, this.tuning.interact_radius, 1.5)) continue;
+      if ((lantern.lit && lantern.fuel >= this.tuning.fuel_max * TICK_RATE) ||
+          !touches(lantern.pos, this.player.pos, this.tuning.interact_radius, 1.5)) continue;
       const gap = xz(lantern.pos, this.player.pos);
       if (gap < distance - EPSILON) {
         best = lantern;
@@ -121,10 +127,19 @@ export class Game {
     return best;
   }
 
+  capacity() {
+    return Math.min(this.tuning.capacity_max, this.tuning.carry_capacity + 2 * this.player.successfulLights);
+  }
+
+  isSafe(lamp) {
+    return lamp.lit && lamp.fuel >= this.tuning.low_fuel_threshold * TICK_RATE;
+  }
+
   collect(emit) {
     const { player, tuning } = this;
+    const capacity = this.capacity();
     this.motes = this.motes.filter(({ pos }) => {
-      if (player.carried >= tuning.carry_capacity || !touches(player.pos, pos, tuning.pickup_radius, tuning.pickup_height)) return true;
+      if (player.carried >= capacity || !touches(player.pos, pos, tuning.pickup_radius, tuning.pickup_height)) return true;
       emit('mote_picked', { carried: ++player.carried });
       return false;
     });
@@ -141,15 +156,54 @@ export class Game {
     const { player, tuning } = this;
     const lantern = this.nearestLantern();
     if (!lantern || player.carried === 0) return;
-    const amount = Math.min(player.carried, tuning.lantern_cost - lantern.deposited);
+    const maxFuel = tuning.fuel_max * TICK_RATE;
+    const fuelPerMote = tuning.fuel_per_mote * TICK_RATE;
+    if (lantern.lit) {
+      const amount = Math.min(player.carried, Math.ceil((maxFuel - lantern.fuel) / fuelPerMote));
+      player.carried -= amount;
+      lantern.fuel = Math.min(maxFuel, lantern.fuel + amount * fuelPerMote);
+      this.score += amount * tuning.score.per_mote;
+      emit('refuel', { lantern_id: lantern.id, amount, fuel: displayedFuel(lantern.fuel) });
+      return;
+    }
+    const relight = lantern.everLit;
+    const cost = relight ? tuning.relight_cost : tuning.lantern_cost;
+    const amount = Math.min(player.carried, cost - lantern.deposited);
     player.carried -= amount;
     lantern.deposited += amount;
     this.score += amount * tuning.score.per_mote;
     if (amount > 0) emit('deposit', { lantern_id: lantern.id, amount, deposited: lantern.deposited });
-    if (lantern.deposited === tuning.lantern_cost) {
+    if (lantern.deposited === cost) {
       lantern.lit = true;
-      this.score += tuning.score.per_lantern;
-      emit('lantern_lit', { lantern_id: lantern.id });
+      lantern.everLit = true;
+      lantern.fuel = maxFuel;
+      lantern.relitCount += Number(relight);
+      player.successfulLights++;
+      this.score += relight ? tuning.score.per_relight : tuning.score.per_lantern;
+      emit('lantern_lit', { lantern_id: lantern.id, relight });
+    }
+  }
+
+  burnFuel(emit) {
+    for (const lamp of this.lanterns) {
+      if (lamp.lit) lamp.fuel -= this.tuning.fuel_decay_per_s;
+    }
+    const reports = [];
+    for (const shade of this.shades) {
+      const lamp = shade.targetLantern;
+      if (shade.state !== 'drain' || !lamp?.lit || this.isSafe(lamp) || xz(shade.pos, lamp.pos) > 2 + EPSILON) continue;
+      lamp.fuel -= this.tuning.drain_per_s;
+      if (++shade.drainTicks % TICK_RATE === 0) reports.push([lamp, shade]);
+    }
+    for (const [lamp, shade] of reports) {
+      emit('fuel_drain', { lantern_id: lamp.id, shade_id: shade.id, fuel: displayedFuel(Math.max(0, lamp.fuel)) });
+    }
+    for (const lamp of this.lanterns) {
+      if (!lamp.lit || lamp.fuel > 0) continue;
+      lamp.lit = false;
+      lamp.fuel = 0;
+      lamp.deposited = 0;
+      emit('lantern_out', { lantern_id: lamp.id });
     }
   }
 
@@ -202,11 +256,14 @@ export class Game {
   finish(emit) {
     let reason;
     if (this.player.flames === 0) [this.state, reason] = ['lost', 'no_flames'];
-    else if (this.lanterns.every(({ lit }) => lit)) {
-      [this.state, reason] = ['won', 'all_lit'];
-      this.score += Math.max(0, Math.floor(this.timeLeft)) * this.tuning.score.per_second_left +
-        this.player.flames * this.tuning.score.per_flame_left;
-    } else if (this.timeLeft <= EPSILON) [this.state, reason] = ['lost', 'dawn'];
+    else if (this.timeLeft <= EPSILON) {
+      const lit = this.lanterns.filter((lamp) => lamp.lit);
+      if (lit.length >= Math.ceil(this.lanterns.length * this.tuning.win_ratio)) {
+        [this.state, reason] = ['won', 'dawn_survived'];
+        this.score += lit.reduce((sum, lamp) => sum + this.tuning.score.per_dawn_lantern +
+          Math.floor(lamp.fuel / TICK_RATE), 0) + this.player.flames * this.tuning.score.per_flame_left;
+      } else [this.state, reason] = ['lost', 'dawn'];
+    }
     if (reason) emit('game_over', { result: this.state, reason });
   }
 
@@ -223,6 +280,7 @@ export class Game {
     if (this.state === 'paused') return events;
     this.simTick++;
     this.countDown();
+    this.burnFuel(emit);
     const { player } = this;
     if (!player.respawnAt && player.flames > 0) updatePlayer(this, input, pressed, emit);
     const falling = player.flames === 0 || fallOrRespawn(this, emit);
@@ -248,11 +306,12 @@ export class Game {
       wind: { active: this.wind.active, dir_deg: this.wind.dir_deg },
       player: {
         pos: roundVector(player.pos), vel: roundVector(player.vel), grounded: player.grounded,
-        flames: player.flames, carried: player.carried, invuln: time < player.invulnerableUntil,
+        flames: player.flames, carried: player.carried, capacity: this.capacity(), invuln: time < player.invulnerableUntil,
         dash_cd_s: time < player.windCharmUntil ? 0 : secondsLeft(player.dashReadyAt, time),
         pulse_cd_s: secondsLeft(player.pulseReadyAt, time), charm_s: secondsLeft(player.windCharmUntil, time)
       },
-      lanterns: this.lanterns.map(({ id, pos, lit, deposited }) => ({ id, pos: roundVector(pos), lit, deposited })),
+      lanterns: this.lanterns.map(({ id, pos, lit, deposited, fuel, everLit, relitCount }) =>
+        ({ id, pos: roundVector(pos), lit, deposited, fuel: displayedFuel(fuel), ever_lit: everLit, relit_count: relitCount })),
       shades: this.shades.map(({ id, pos, state }) => ({ id, pos: roundVector(pos), state })),
       drifters: this.drifters.map(({ id, pos, state, stolen }) => ({ id, pos: roundVector(pos), state, stolen })),
       charms: this.charms.map(({ id, available, respawnAt }) => ({ id, available, respawn_s: secondsLeft(respawnAt, time) })),
