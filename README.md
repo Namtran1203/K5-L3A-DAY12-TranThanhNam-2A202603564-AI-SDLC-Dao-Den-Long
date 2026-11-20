@@ -1,8 +1,8 @@
 # Đảo Đèn Lồng
 
-Mây, người giữ đèn nhỏ tuổi, tìm đom đóm để thắp lại năm Đèn Lồng Lớn trên Đảo Bến. Hãy tránh Bóng Mực và hoàn thành trước bình minh.
+Mây, người giữ đèn nhỏ tuổi, gom đom đóm để thắp lại Đảo Bến, Đảo Cau và Đảo Chuông trước bình minh. Dùng đèn sáng làm nơi trú Bóng Mực, vượt cầu tre và tận dụng bục nhảy trên hành trình qua ba đêm.
 
-[Ảnh chơi thử Phase 1](docs/proof/phase-1/gameplay.png) · [Bằng chứng kiểm chứng](docs/proof/phase-1/README.md) · [Tài liệu lab](LAB.md)
+[Bằng chứng Phase 2](docs/proof/phase-2/README.md) · [Bằng chứng Phase 1](docs/proof/phase-1/README.md) · [Tài liệu lab](LAB.md)
 
 ## Chạy game
 
@@ -17,27 +17,33 @@ npm start
 |---|---|
 | WASD hoặc phím mũi tên | Đi theo hướng camera |
 | Space | Nhảy |
+| Shift | Lướt theo hướng chạy hoặc hướng Mây đang quay mặt |
 | E | Nạp đom đóm vào đèn đã tắt gần Mây nhất |
-| Q | Tiêu 2 đom đóm để tỏa sáng, đẩy lùi và làm choáng Bóng Mực trong phạm vi |
+| Q | Tiêu 3 đom đóm để Tỏa Sáng, làm choáng Bóng Mực và xua Gió Lạc đang đuổi |
+| Esc hoặc P | Tạm dừng hoặc tiếp tục |
 | Kéo chuột trên cảnh 3D | Xoay camera |
 
-Mỗi Đèn Lồng Lớn cần 6 đom đóm và nhận được nhiều lượt nạp. Có thể mang tối đa 12 đom đóm. Đèn sáng tạo vùng an toàn bán kính 4,5 m. Bóng Mực chạm Mây làm mất một lửa và rơi 40% đom đóm đang mang, làm tròn xuống. Mép đảo giới hạn bước đi, nên `fall_enabled` là `false`. Phase 1 chưa có dash.
+Mỗi Đèn Lồng Lớn cần 10 đom đóm và nhận được nhiều lượt nạp. Mây mang tối đa 10 đom đóm và có 3 Ngọn Lửa mỗi đêm. Bóng Mực làm rơi một nửa số đom đóm đang mang khi chạm Mây. Đèn sáng tạo vùng an toàn bán kính 6 m. Gió Lạc vẫn có thể cướp ánh sáng ở vùng an toàn. Bùa Gió tăng tốc và cho phép lướt lại ngay khi lần trước kết thúc.
+
+Bước ra khỏi mép đảo có thể làm Mây mất một Ngọn Lửa và toàn bộ đom đóm đang mang. Đêm 2 có cầu tre và bục phóng qua đảo kia. Đêm 3 có hai dốc lên tầng trên, một bục phóng lên tháp chuông và gió mạnh được báo bằng lá bay và âm thanh. Cài đặt âm lượng và độ nhạy chuột có trong menu chính và menu tạm dừng.
 
 ## Điểm số
 
-Nhặt một đom đóm được 10 điểm, thắp một đèn được 100 điểm, và mỗi Bóng Mực trúng một lần tỏa sáng được 25 điểm. Khi thắng, cộng 2 điểm mỗi giây nguyên còn lại và 50 điểm mỗi lửa còn lại. Khi thua, điểm đã tích lũy vẫn hiển thị. Bấm **Chơi lại** để bắt đầu lại Đêm 1.
+Nạp một đom đóm được 10 điểm, thắp một đèn được 100 điểm và mỗi Bóng Mực trúng Tỏa Sáng được 5 điểm. Khi thắng, cộng 2 điểm mỗi giây nguyên còn lại và 50 điểm mỗi Ngọn Lửa còn lại. Màn Bình Minh hiển thị tổng điểm ba đêm đã thắng. Nếu thua, bạn có thể chơi lại đêm hiện tại.
 
 ## Kiểm chứng và headless
 
 ```sh
 npm run verify
-node src/headless.mjs --seed 2026 --night 1 --ticks 18000 --inputs docs/proof/phase-1/night-one-inputs.json --snapshot-every 600 --out night-one.jsonl
+node src/headless.mjs --seed 2026 --night 1 --ticks 18000 --inputs docs/proof/phase-2/night-one-inputs.json --snapshot-every 600 --out night-one.jsonl
 ```
 
-Contract v1.0 và toàn bộ thông số nằm trong [game.contract.json](game.contract.json). CLI cũng nhận `--scenario <file.json>`. Nếu bỏ `--inputs`, Mây đứng yên. Nếu bỏ `--snapshot-every`, CLI ghi snapshot mỗi 10 tick, bắt đầu từ tick 0. Game trên web và headless chạy cùng mô phỏng 60 tick/giây.
+Contract v1.1 và toàn bộ thông số khai báo trong [game.contract.json](game.contract.json). CLI nhận `--night 1`, `2` hoặc `3` và tùy chọn `--scenario <file.json>`. Nếu bỏ `--inputs`, người chơi không bấm phím. Nếu bỏ `--snapshot-every`, CLI ghi snapshot mỗi 10 tick, bắt đầu từ tick 0. Game trên web và headless chạy cùng mô phỏng 60 tick/giây. Khi tạm dừng, chỉ `tick` tiếp tục tăng. Các bộ đếm gameplay đi theo `sim_tick`.
 
-Xem [giả định và nhật ký AI](docs/notes/phase-1.md), [hướng dẫn cho agent](AGENTS.md) và [nguồn tài sản](CREDITS.md).
+Các đối tượng `drifters` trong scenario có `pos` và các trường tùy chọn `id`, `state`, `state_ticks_left`, `stolen`. Mỗi đối tượng `charms` có `pos` và các trường tùy chọn `id`, `available`, `respawn_ticks`. Tuning `score.per_mote` là điểm cho **mỗi đom đóm nạp**. Đom đóm nhặt lên chưa tính điểm.
+
+Xem [tiêu chí nghiệm thu và giả định Phase 2](docs/notes/phase-2.md), [hướng dẫn cho agent](AGENTS.md) và [nguồn tài sản](CREDITS.md).
 
 ## Sáng tạo của tôi
 
-Minimap la bàn đánh dấu vị trí, hướng nhìn của Mây và các đèn đã sáng. Quầng sáng âm ấm lan ra mặt đất và đảo chuyển dần từ tím lạnh sang vàng khi thắp thêm đèn. Các chi tiết này được tính ở lớp hiển thị. Bài chơi thử trên trình duyệt và replay headless cùng thắng sau 2474 tick với 1651 điểm. [Đèn vừa thắp](docs/proof/phase-1/lit-lantern.png) · [JSONL headless](docs/proof/phase-1/night-one.jsonl)
+Minimap la bàn đánh dấu vị trí và hướng nhìn của Mây, cầu hoặc tầng cao, cùng các đèn đã sáng. Quầng ấm quanh đèn báo nơi trú Bóng Mực. Minimap, nhạc và màu sắc là một phần của lớp hiển thị. [Ảnh Đảo Cau](docs/proof/phase-2/night-2.png) · [Replay headless](docs/proof/phase-2/night-one.jsonl)

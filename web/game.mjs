@@ -117,7 +117,7 @@ function scenery(game) {
       const r = radius - 9 + random() * 7;
       const x = islandX + Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
-      if (game.night === 2 && Math.abs(z) < 4 && x > 23 && x < 48) continue;
+      if (game.night === 2 && Math.abs(z) < 6 && x > 15 && x < 55) continue;
       const scale = 0.66 + random() * 0.7;
       treePositions.push([x, z, scale, random() * 6.28]);
     }
@@ -676,8 +676,9 @@ async function main() {
     const cos = Math.cos(yaw);
     const cameraY = Math.max(-4, y);
     const lowCeiling = game.night === 3 && cameraY < 3 && Math.hypot(x, z) < 16;
+    const lookHeight = game.night === 3 && cameraY >= 0 && cameraY < 2 && !lowCeiling ? 2.9 : 1;
     follow.set(x - sin * 8.7, lowCeiling ? Math.min(4.3, cameraY + 3.7) : cameraY + 5.8, z - cos * 8.7);
-    look.set(x + sin * 3, cameraY + 1, z + cos * 3);
+    look.set(x + sin * 3, cameraY + lookHeight, z + cos * 3);
     camera.position.lerp(follow, 0.23);
     camera.lookAt(look);
     renderer.render(scene, camera);

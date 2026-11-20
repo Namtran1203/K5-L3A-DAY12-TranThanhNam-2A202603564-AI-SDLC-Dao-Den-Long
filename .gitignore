@@ -3,4 +3,5 @@
 !.env.example
 node_modules/
 /night-one.jsonl
+/night-two.jsonl
 /tmp-proof/

@@ -140,7 +140,7 @@ try {
     }
     if (night === 3) {
       await page.evaluate(() => {
-        window.proofScenario = { player: { pos: [0, 0, -20] }, random_shades: false };
+        window.proofScenario = { player: { pos: [0, 0, -33] }, random_shades: false };
       });
       await page.waitForTimeout(260);
       await screenshot(page, 'bell-tower');
