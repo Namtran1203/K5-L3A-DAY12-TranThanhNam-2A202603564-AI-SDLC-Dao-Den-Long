@@ -5,3 +5,6 @@ node_modules/
 /night-one.jsonl
 /night-two.jsonl
 /tmp-proof/
+/dist/
+/scores.json
+/leaderboard.json

@@ -1,0 +1,17 @@
+{
+  "wind_enabled": false,
+  "player": {
+    "invuln_ticks": 18001
+  },
+  "lanterns": [
+    {
+      "id": "L1",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "lit": true
+    }
+  ]
+}

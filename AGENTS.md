@@ -6,6 +6,8 @@
 - Cài với `npm ci`, chạy web với `npm start`, chạy bộ kiểm chứng với `npm run verify`. CI chạy bộ kiểm chứng này trên Linux.
 - Phase 2 dùng Contract v1.1. Lệnh headless nhận ba đêm. Dùng `simTick` cho thời gian, hồi chiêu, spawn và TTL. Giữ đúng thứ tự xử lý trong `Game.step`.
 - Từ Phase 3, dầu giữ ở đơn vị nguyên 1/60. Trừ dầu trước tương tác và chỉ xét thắng cuối tick bình minh. Bằng chứng v1.2 nằm tại `docs/proof/phase-3`.
+- Phase 4 dùng Contract v1.3. Tách cảnh benchmark khỏi CLI gameplay, giữ kích thước canvas đúng 1280×720 và lưu `bench.json`, `soak.json` từ lệnh trong README. Dùng tệp bảng xếp hạng tạm khi kiểm thử.
+- Trước khi phát hành, chạy `npm run verify`, kiểm tra bản web từ thư mục gói sạch và kiểm tra MP4. Giữ tag của từng Phase khớp với bằng chứng.
 - Tọa độ chuẩn và phép kiểm tra địa hình nằm trong `src/maps.mjs`. Số liệu báo trong snapshot lấy từ mô phỏng. Các hiệu ứng âm thanh, HUD và cảnh 3D nằm ở lớp web.
 - Chạy kiểm chứng của phase hiện tại và các kiểm chứng cũ còn hiệu lực. Khi ticket thay đổi luật, ghi lý do cập nhật các bài kiểm tra liên quan.
 - Lưu lệnh, kịch bản đầu vào và đầu ra thực tế theo từng phase. Phase 1 dùng `npm run verify -- --record docs/proof/phase-1` và bài chơi thử trình duyệt theo hướng dẫn trong thư mục bằng chứng.

@@ -1,0 +1,2 @@
+Đã giải nén Dao-Den-Long-v1.0.0.zip vào thư mục tạm sạch. Gói không có node_modules.
+Chạy node scripts/serve.mjs, mở bằng Edge, vào Đảo Bến và xác nhận canvas WebGL 2 1280×720, HUD 3/3 và API bảng xếp hạng.

@@ -1,0 +1,6 @@
+node --test --test-reporter=spec: tất cả kiểm thử đạt
+Scenario dầu và bình minh seed 2026: {"type":"end","ticks":60,"state":"won","score":739}
+Hai lượt headless sinh JSONL giống từng byte, SHA-256 3971d620dd057258d7b3cafc3bfe0b2f94f20b83d89922ee881f1bbdfdd86e38
+Kịch bản Đêm 2: night_start, charm_picked, drifter_steal, player_hit, pulse, drifter_drop, dash, paused, resumed
+Đêm 3 18000 tick, snapshot mỗi 10 tick: 516.5 ms
+win32/x64 · Node v26.13.0 · AMD Ryzen 7 5800H with Radeon Graphics

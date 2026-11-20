@@ -1,8 +1,12 @@
 # Đảo Đèn Lồng
 
+[Video demo MP4](docs/demo/demo.mp4) · [Release v1.0.0](https://github.com/Namtran1203/K5-L3A-DAY12-TranThanhNam-2A202603564-AI-SDLC/releases/tag/v1.0.0) · [Bằng chứng Phase 4](docs/proof/phase-4/README.md)
+
 Mây, người giữ đèn nhỏ tuổi, gom đom đóm để thắp lại Đảo Bến, Đảo Cau và Đảo Chuông trước bình minh. Dùng đèn sáng làm nơi trú Bóng Mực, vượt cầu tre và tận dụng bục nhảy trên hành trình qua ba đêm.
 
-[Bằng chứng Phase 3](docs/proof/phase-3/README.md) · [Bằng chứng Phase 2](docs/proof/phase-2/README.md) · [Tài liệu lab](LAB.md)
+![Mây trên Đảo Bến với đồng hồ, số đèn và minimap](docs/proof/phase-4/night-1.png)
+
+[Bằng chứng Phase 3](docs/proof/phase-3/README.md) · [Bằng chứng Phase 2](docs/proof/phase-2/README.md) · [Bằng chứng Phase 1](docs/proof/phase-1/README.md) · [Tài liệu lab](LAB.md)
 
 ## Chạy game
 
@@ -25,7 +29,7 @@ npm start
 
 Mỗi đèn cần 10 đom đóm để thắp lần đầu và 5 để thắp lại. Dầu cạn dần và mỗi đom đóm châm thêm 10 dầu. Từ 30 dầu trở lên, đèn tạo vùng an toàn bán kính 6 m. Bóng Mực có thể hút dầu ở đèn yếu. Mây bắt đầu với 3 Ngọn Lửa và sức chứa 10, tăng 2 sau mỗi lần thắp thành công tới tối đa 20. Gió Lạc vẫn có thể cướp ánh sáng ở vùng an toàn. Bùa Gió tăng tốc và bỏ hồi chiêu Lướt.
 
-Bước ra khỏi mép đảo có thể làm Mây mất một Ngọn Lửa và toàn bộ đom đóm đang mang. Đêm 2 có cầu tre và bục phóng qua đảo kia. Đêm 3 có hai dốc lên tầng trên, một bục phóng lên tháp chuông và gió mạnh được báo bằng lá bay và âm thanh. Cài đặt âm lượng và độ nhạy chuột có trong menu chính và menu tạm dừng.
+Bước ra khỏi mép đảo có thể làm Mây mất một Ngọn Lửa và toàn bộ đom đóm đang mang. Đêm 2 có cầu tre và bục phóng qua đảo kia. Đêm 3 có hai dốc lên tầng trên, một bục phóng lên tháp chuông và gió mạnh được báo bằng lá bay, phụ đề và âm thanh. Cài đặt lưu phím, âm lượng, độ nhạy chuột, bảng màu, giảm chuyển động và chữ lớn. Khi giảm chuyển động, cảnh báo hình ảnh vẫn hiển thị.
 
 ## Điểm số
 
@@ -42,7 +46,26 @@ Contract và toàn bộ thông số khai báo trong [game.contract.json](game.co
 
 Các đối tượng `drifters` trong scenario có `pos` và các trường tùy chọn `id`, `state`, `state_ticks_left`, `stolen`. Mỗi đối tượng `charms` có `pos` và các trường tùy chọn `id`, `available`, `respawn_ticks`. Tuning `score.per_mote` là điểm cho **mỗi đom đóm nạp**. Đom đóm nhặt lên chưa tính điểm.
 
-Xem [tiêu chí nghiệm thu và giả định Phase 2](docs/notes/phase-2.md), [hướng dẫn cho agent](AGENTS.md) và [nguồn tài sản](CREDITS.md).
+## Benchmark và soak
+
+```sh
+node scripts/benchmark.mjs --seed 42 --duration 30 --out bench.json
+node --expose-gc --max-semi-space-size=1 scripts/soak.mjs --seed 7 --nights 10 --out soak.json
+```
+
+Benchmark mở Chromium, Chrome hoặc Edge trong cửa sổ 1280×720. Cần phiên desktop và trình duyệt có WebGL 2. Nếu cần, đặt `CHROME_BIN` tới tệp thực thi hoặc cài Chromium bằng `npx playwright-core install chromium`. Launcher tắt giới hạn khung và đồng bộ GPU bằng cờ Chromium. JSON ghi `peak_mem_mb: null` vì bản web dùng nhiều tiến trình Chromium và launcher không lấy RSS đỉnh thống nhất trên ba hệ điều hành. Soak đo RSS cùng tiến trình Node bằng MiB ở hai mốc đã quy định. Các Đêm dùng seed gốc cộng chỉ số từ 0 và luân phiên bản đồ 1 → 2 → 3.
+
+## Bảng xếp hạng và bản phát hành
+
+Sau Bình Minh hoặc khi thua, lưu tên 3–12 ký tự A–Z, a–z, 0–9 hoặc _. Điểm tính từ các Đêm đã thắng. Bản chạy bằng Node lưu điểm vào thư mục dữ liệu của người dùng. Đặt `LANTERN_LEADERBOARD` để chỉ định một tệp dữ liệu riêng khi thử.
+
+```sh
+node scripts/serve.mjs --export-leaderboard scores.json
+```
+
+Tải **Dao-Den-Long-v1.0.0.zip** từ Release, giải nén rồi chạy `node scripts/serve.mjs` trong thư mục đó bằng Node.js 22+. Gói có sẵn mã web và Three.js. Có thể phục vụ thư mục này ở gốc máy chủ tĩnh, khi đó điểm được lưu trong trình duyệt.
+
+Xem [retro](docs/RETRO.md), [hướng dẫn cho agent](AGENTS.md), [nguồn tài sản](CREDITS.md) và [giấy phép](LICENSE).
 
 ## Sáng tạo của tôi
 

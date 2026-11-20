@@ -1,0 +1,13 @@
+Chromium 157.0.4341.60 · win32 · v26.13.0 · AMD Ryzen 7 5800H with Radeon Graphics
+Đã kiểm tra menu, lời Ông Đăng, HUD, tạm dừng/tiếp tục/chơi lại, lưu âm lượng và độ nhạy qua reload.
+Đã ghi nhận Web Audio tạo nốt khi chạy nền, nhảy và lướt.
+Đã kiểm tra phím trùng, lưu phím J, cỡ chữ 22,5 px, giảm chuyển động, phụ đề dầu và chỉ hướng Bóng Mực.
+Đã kiểm tra phụ đề báo gió, đếm ngược, khôi phục phím và cỡ chữ mặc định 18 px.
+Đã lưu bảng xếp hạng từ Bình Minh và từ màn thua, rồi mở bảng từ menu chính.
+Đã dùng scenario ở bước chốt đêm để kiểm tra thắng, thua, chuyển ba đêm và Bình Minh (tổng 3564 điểm).
+FPS requestAnimationFrame trong 5 giây chơi bình thường mỗi đêm, canvas 1280×720, DPR 1.
+WebGL renderer: ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001638) Direct3D11 vs_5_0 ps_5_0, D3D11)
+Đêm 1: 142.6 FPS
+Đêm 2: 143.4 FPS
+Đêm 3: 143.2 FPS
+Trung bình ba mẫu: 143.1 FPS

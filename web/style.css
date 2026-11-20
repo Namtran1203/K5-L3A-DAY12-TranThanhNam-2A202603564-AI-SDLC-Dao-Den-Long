@@ -106,3 +106,49 @@ button:disabled { opacity: .55; cursor: wait; }
   .abilities > div { padding: 5px 6px !important; }
   .pack { bottom: 100px; left: 12px; transform: none; }
 }
+
+:root { --ui-size: 18px; }
+:root.large-text { --ui-size: 22.5px; }
+.heading p, .night, .dialog p:not(.night), .hud-panel p, .hud-panel output, .pack p output,
+.controls, .prompt, .notice, .guide, .guide output, button, #settings-fields label,
+#settings-fields summary, #settings-fields output, #settings-fields p, #score-form,
+#score-form input, #leaderboard-panel, .captions {
+  font-size: var(--ui-size);
+}
+.clock #time { font-size: max(1.28rem, var(--ui-size)); }
+.dialog { width: min(100%, 570px); max-height: calc(100dvh - 36px); overflow-y: auto; }
+.controls { max-width: calc(100% - 320px); }
+.pack { bottom: 113px; }
+.abilities #charm { top: -28px; }
+.notice { bottom: 36%; }
+.prompt { bottom: 26%; }
+.captions {
+  position: absolute; top: 14%; left: 50%; max-width: 70%; transform: translateX(-50%);
+  color: var(--danger); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; pointer-events: none; padding: 5px 10px; text-align: center;
+}
+.guide { top: 22%; }
+.shade-direction {
+  position: absolute; z-index: 1; color: var(--danger); font-weight: 900;
+  font-size: 2rem; line-height: 1; pointer-events: none; text-shadow: 0 0 5px #0E1430;
+}
+.reduce-motion #time.danger { animation: none; }
+.key-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 12px 0; }
+.key-fields button { padding: 5px; text-align: left; }
+.key-fields button span { display: inline-block; color: #F5F1E6; margin-left: 4px; }
+#settings-fields #key-status { color: var(--danger); margin: 0 0 8px; }
+#score-form > label { display: block; margin-bottom: 7px; }
+#score-form input {
+  width: min(100%, 14ch); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px; background: #17203d; color: #F5F1E6;
+}
+#leaderboard-panel table { width: 100%; border-collapse: collapse; margin: 14px 0; text-align: left; }
+#leaderboard-panel td, #leaderboard-panel th { padding: 5px; border-bottom: 1px solid var(--border); }
+.benchmark #game > :not(#scene) { display: none !important; }
+@media (max-width: 760px) {
+  .controls { max-width: calc(100% - 175px); }
+  .pack { bottom: 134px; }
+  .captions { top: 25%; }
+  .guide { top: 36%; }
+  .key-fields { grid-template-columns: 1fr; }
+}

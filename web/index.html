@@ -40,13 +40,15 @@
       <span id="guide-arrow" aria-hidden="true">↑</span><output id="guide-distance"></output>
     </div>
     <p id="notice" class="notice" role="status"></p>
+    <div id="captions" class="captions" role="status" aria-live="polite" hidden></div>
+    <div id="shade-direction" class="shade-direction" aria-label="Hướng Bóng Mực xuất hiện" hidden>↑</div>
     <footer class="controls" aria-label="Điều khiển">
-      <span><kbd>WASD</kbd> Đi</span>
-      <span><kbd>Space</kbd> Nhảy</span>
-      <span><kbd>Shift</kbd> Lướt</span>
-      <span><kbd>E</kbd> Nạp</span>
-      <span><kbd>Q</kbd> Sáng</span>
-      <span><kbd>Esc</kbd> Dừng</span>
+      <span><kbd id="key-move">WASD</kbd> Đi</span>
+      <span><kbd data-key="jump">Space</kbd> Nhảy</span>
+      <span><kbd data-key="dash">Shift</kbd> Lướt</span>
+      <span><kbd data-key="interact">E</kbd> Nạp</span>
+      <span><kbd data-key="pulse">Q</kbd> Sáng</span>
+      <span><kbd data-key="pause">Esc</kbd> Dừng</span>
       <span><kbd>Chuột</kbd> Xoay góc nhìn</span>
     </footer>
     <section id="overlay" class="overlay" aria-labelledby="overlay-title">
@@ -58,11 +60,32 @@
           <label>Âm lượng <input id="volume" type="range" min="0" max="1" step=".05"><output id="volume-text"></output></label>
           <label>Độ nhạy chuột <input id="sensitivity" type="range" min=".25" max="2" step=".05"><output id="sensitivity-text"></output></label>
           <label class="toggle"><input id="color-assist" type="checkbox"> Bảng màu dễ phân biệt</label>
+          <label class="toggle"><input id="reduce-motion" type="checkbox"> Giảm chuyển động</label>
+          <label class="toggle"><input id="large-text" type="checkbox"> Chữ lớn</label>
+          <details>
+            <summary>Đổi phím</summary>
+            <div id="key-fields" class="key-fields"></div>
+            <p id="key-status" role="status"></p>
+            <button type="button" class="secondary" id="reset-keys">Khôi phục mặc định</button>
+          </details>
+        </div>
+        <form id="score-form" hidden>
+          <label for="player-name">Tên trên bảng xếp hạng</label>
+          <div class="actions">
+            <input id="player-name" name="name" minlength="3" maxlength="12" pattern="[A-Za-z0-9_]{3,12}" required autocomplete="off" aria-describedby="score-status">
+            <button type="submit">Lưu điểm</button>
+          </div>
+          <p id="score-status" role="status">3–12 ký tự A–Z, a–z, 0–9 hoặc _.</p>
+        </form>
+        <div id="leaderboard-panel" hidden>
+          <table><thead><tr><th>Tên</th><th>Điểm</th><th>Đêm</th></tr></thead><tbody id="leaderboard-entries"></tbody></table>
+          <p id="leaderboard-status" role="status"></p>
         </div>
         <div id="actions" class="actions">
           <button type="button" id="start" disabled>Bắt đầu</button>
           <button type="button" id="restart" hidden>Chơi lại Đêm</button>
           <button type="button" id="settings" class="secondary" hidden>Cài đặt</button>
+          <button type="button" id="leaderboard" class="secondary" hidden>Bảng xếp hạng</button>
           <button type="button" id="to-menu" class="secondary" hidden>Về menu</button>
         </div>
       </div>

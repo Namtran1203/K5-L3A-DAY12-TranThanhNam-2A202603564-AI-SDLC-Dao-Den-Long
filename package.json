@@ -1,6 +1,6 @@
 {
   "name": "dao-den-long",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
+    "playwright-core": "1.65.1",
     "three": "0.180.0"
   }
 }
