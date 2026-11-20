@@ -1,3 +1,5 @@
+import { MAPS } from './maps.mjs';
+
 const number = Number.isFinite;
 const integer = (value) => Number.isSafeInteger(value) && value >= 0;
 const boolean = (value) => typeof value === 'boolean';
@@ -33,34 +35,49 @@ export function validateInputs(value) {
   return fields(value, 'inputs', {
     frames: (frames) => entries(frames, 'inputs.frames', (frame, path) => {
       fields(frame, path, { tick: integer, move, cam_yaw_deg: number, jump: boolean,
-        interact: boolean, pulse: boolean, dash: boolean });
+        interact: boolean, pulse: boolean, dash: boolean, pause: boolean });
       check(Object.hasOwn(frame, 'tick') && frame.tick > lastTick, `${path}.tick (phải tăng nghiêm ngặt)`);
       lastTick = frame.tick;
     })
   });
 }
 
-export function validateScenario(value, tuning) {
-  const shadeIds = new Set();
+function entities(value, path, schema) {
+  const ids = new Set();
+  return entries(value, path, (item, at) => {
+    fields(item, at, { id: identifier, pos, ...schema });
+    check(Object.hasOwn(item, 'pos'), at + '.pos');
+    if (Object.hasOwn(item, 'id')) {
+      check(!ids.has(item.id), at + '.id');
+      ids.add(item.id);
+    }
+  });
+}
+
+export function validateScenario(value, tuning, night = 1) {
   const lanternIds = new Set();
   return fields(value, 'scenario', {
     player: (value) => fields(value, 'scenario.player', {
       pos, carried: (n) => integer(n) && n <= tuning.carry_capacity,
-      flames: (n) => integer(n) && n <= tuning.flames
+      flames: (n) => integer(n) && n <= tuning.flames,
+      invuln_ticks: integer, dash_cd_ticks: integer, pulse_cd_ticks: integer, charm_ticks: integer
     }),
     random_motes: boolean,
     random_shades: boolean,
+    random_drifters: boolean,
+    wind_enabled: boolean,
     motes: (list) => entries(list, 'scenario.motes', (item, path) => check(pos(item), path)),
-    shades: (list) => entries(list, 'scenario.shades', (item, path) => {
-      fields(item, path, { pos, id: identifier });
-      check(Object.hasOwn(item, 'pos'), `${path}.pos`);
-      if (Object.hasOwn(item, 'id')) {
-        check(!shadeIds.has(item.id), `${path}.id`);
-        shadeIds.add(item.id);
-      }
+    shades: (list) => entities(list, 'scenario.shades', {
+      state: (s) => ['spawning', 'wander', 'chase', 'recoil', 'stunned'].includes(s), state_ticks_left: integer
     }),
+    drifters: (list) => entities(list, 'scenario.drifters', {
+      state: (s) => ['idle', 'chase', 'flee', 'removed'].includes(s), state_ticks_left: integer,
+      stolen: (n) => integer(n) && n <= 3
+    }),
+    charms: (list) => entities(list, 'scenario.charms', { available: boolean, respawn_ticks: integer }),
     lanterns: (list) => entries(list, 'scenario.lanterns', (item, path) => {
-      fields(item, path, { id: (id) => typeof id === 'string' && /^L[1-5]$/.test(id), pos,
+      fields(item, path, { id: (id) => typeof id === 'string' && /^L[1-7]$/.test(id) &&
+        Number(id.slice(1)) <= MAPS[night].lanterns.length, pos,
         deposited: (n) => integer(n) && n <= tuning.lantern_cost, lit: boolean });
       check(Object.hasOwn(item, 'id') && !lanternIds.has(item.id), `${path}.id`);
       lanternIds.add(item.id);

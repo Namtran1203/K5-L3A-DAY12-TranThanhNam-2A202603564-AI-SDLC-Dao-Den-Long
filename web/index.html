@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#17172a">
+  <meta name="theme-color" content="#0E1430">
   <title>Đảo Đèn Lồng</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/style.css">
@@ -12,34 +12,58 @@
   <main id="game">
     <canvas id="scene" aria-label="Cảnh 3D Đảo Đèn Lồng"></canvas>
     <header class="heading">
-      <p>Đêm 1 <span>·</span> Đảo Bến</p>
+      <p id="night-label">Đêm 1 · Đảo Bến</p>
       <h1>Đảo Đèn Lồng</h1>
     </header>
-    <section class="hud" aria-label="Trạng thái trò chơi">
-      <div><p>Lửa của Mây</p><output id="flames"></output></div>
-      <div><p>Đom đóm</p><output id="carried"></output></div>
-      <div><p>Đèn lớn</p><output id="lit"></output></div>
-      <div><p>Đến bình minh</p><output id="time"></output></div>
-      <div><p>Điểm</p><output id="score"></output></div>
+    <section id="hud" aria-label="Trạng thái trò chơi">
+      <div class="hud-panel vitals"><p>Ngọn Lửa</p><output id="flames"></output></div>
+      <div class="hud-panel clock"><p>Đến bình minh</p><output id="time"></output></div>
+      <div class="hud-panel progress">
+        <div><p>Đèn lớn</p><output id="lit"></output></div>
+        <div><p>Điểm</p><output id="score"></output></div>
+      </div>
+      <div class="hud-panel pack">
+        <p>Đom đóm <output id="carried"></output></p>
+        <div id="mote-slots" aria-hidden="true"></div>
+      </div>
+      <div class="hud-panel abilities">
+        <div><p>⇧ Lướt</p><output id="dash"></output></div>
+        <div><p>✧ Tỏa Sáng</p><output id="pulse"></output></div>
+        <p id="charm" hidden></p>
+      </div>
     </section>
     <aside class="map-panel" aria-label="Bản đồ các đèn">
       <canvas id="map" width="240" height="240"></canvas>
     </aside>
     <p id="prompt" class="prompt" hidden></p>
+    <div id="guide" class="guide" hidden aria-label="Hướng đến đèn tắt gần nhất">
+      <span id="guide-arrow" aria-hidden="true">↑</span><output id="guide-distance"></output>
+    </div>
     <p id="notice" class="notice" role="status"></p>
     <footer class="controls" aria-label="Điều khiển">
       <span><kbd>WASD</kbd> Đi</span>
       <span><kbd>Space</kbd> Nhảy</span>
-      <span><kbd>E</kbd> Nạp đèn</span>
-      <span><kbd>Q</kbd> Tỏa sáng</span>
+      <span><kbd>Shift</kbd> Lướt</span>
+      <span><kbd>E</kbd> Nạp</span>
+      <span><kbd>Q</kbd> Sáng</span>
+      <span><kbd>Esc</kbd> Dừng</span>
       <span><kbd>Chuột</kbd> Xoay góc nhìn</span>
     </footer>
     <section id="overlay" class="overlay" aria-labelledby="overlay-title">
       <div class="dialog">
-        <p class="night">Đêm 1 · Đảo Bến</p>
+        <p class="night" id="overlay-night" hidden></p>
         <h2 id="overlay-title">Đảo Đèn Lồng</h2>
-        <p id="overlay-text">Cùng Mây gom đom đóm và thắp lại năm Đèn Lồng Lớn trước khi trời sáng.</p>
-        <button type="button" id="start" disabled>Vào đảo</button>
+        <p id="overlay-text">Cùng Mây thắp lại đèn lồng trên ba hòn đảo trước khi trời sáng.</p>
+        <div id="settings-fields" hidden>
+          <label>Âm lượng <input id="volume" type="range" min="0" max="1" step=".05"><output id="volume-text"></output></label>
+          <label>Độ nhạy chuột <input id="sensitivity" type="range" min=".25" max="2" step=".05"><output id="sensitivity-text"></output></label>
+        </div>
+        <div id="actions" class="actions">
+          <button type="button" id="start" disabled>Bắt đầu</button>
+          <button type="button" id="restart" hidden>Chơi lại Đêm</button>
+          <button type="button" id="settings" class="secondary" hidden>Cài đặt</button>
+          <button type="button" id="to-menu" class="secondary" hidden>Về menu</button>
+        </div>
       </div>
     </section>
   </main>

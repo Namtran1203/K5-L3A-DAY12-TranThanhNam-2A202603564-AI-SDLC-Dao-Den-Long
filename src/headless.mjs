@@ -31,7 +31,8 @@ function run() {
   }
   const { values } = parseArgs({ options, args });
   const seed = integer(values.seed, 'seed');
-  if (integer(values.night, 'night') !== 1) throw new Error('Phase 1 chỉ hỗ trợ --night 1');
+  const night = integer(values.night, 'night', 1);
+  if (night > 3) throw new Error('--night cần là 1, 2 hoặc 3');
   const ticks = integer(values.ticks, 'ticks', 0);
   const every = integer(values['snapshot-every'] ?? '10', 'snapshot-every', 1);
   if (!values.out) throw new Error('Thiếu --out');
@@ -39,9 +40,9 @@ function run() {
   const { tuning } = JSON.parse(readFileSync(new URL('../game.contract.json', import.meta.url), 'utf8'));
   const scenario = values.scenario === undefined ? {} : readJson(values.scenario);
   const inputs = values.inputs === undefined ? { frames: [] } : readJson(values.inputs);
-  validateScenario(scenario, tuning);
+  validateScenario(scenario, tuning, night);
   validateInputs(inputs);
-  const game = new Game(tuning, seed, scenario);
+  const game = new Game(tuning, seed, scenario, night);
   const output = openSync(values.out, 'w');
   let buffer = '';
   function write(record) {
@@ -55,14 +56,17 @@ function run() {
     let input = DEFAULT_INPUT;
     let index = 0;
     write(game.snapshot());
-    while (game.tick < ticks && game.state === 'playing') {
+    write({ type: 'event', tick: 0, name: 'night_start', data: { night } });
+    while (game.tick < ticks && (game.state === 'playing' || game.state === 'paused')) {
       const previous = input;
       const frame = inputs.frames[index];
       if (frame?.tick === game.tick) {
         input = { ...input, ...frame };
         index++;
       }
-      for (const event of game.step(input, previous)) write(event);
+      for (const event of game.step(input, previous)) {
+        if (event.name !== 'jump') write(event);
+      }
       if (game.tick % every === 0) write(game.snapshot());
     }
     write({ type: 'end', ticks: game.tick, state: game.state, score: game.score });
