@@ -1,0 +1,4 @@
+node --test --test-reporter=spec: tất cả kiểm thử đạt
+Replay Đêm 1 mặc định seed 2026, không override scenario: {"type":"end","ticks":2474,"state":"won","score":1651}
+Hai lượt headless sinh JSONL giống từng byte
+SHA-256 20f2270091746f45ae30d46bc9ed8e3a21a62ed942c8214586953fdae1f95192

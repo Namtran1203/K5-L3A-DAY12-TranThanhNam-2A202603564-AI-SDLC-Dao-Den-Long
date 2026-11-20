@@ -1,0 +1,5 @@
+Chromium 157.0.4341.60 · win32 · v26.13.0
+Replay bằng phím thật trong Edge Chromium headless, đồng hồ requestAnimationFrame điều khiển bởi bài kiểm tra.
+Đêm 1 mặc định seed 2026: thắp 5/5 đèn, thắng sau 2474 tick, HUD 1651 điểm.
+Chơi lại sau thắng đặt lại đèn, lửa và điểm. Đứng yên bị Bóng Mực chạm đến hết lửa và hiện màn thua.
+Chơi lại sau thua trở về màn chơi với 3/3 lửa. Không có lỗi console hoặc JavaScript.

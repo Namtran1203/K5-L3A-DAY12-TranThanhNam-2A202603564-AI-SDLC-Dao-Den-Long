@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17172a">
+  <title>Đảo Đèn Lồng</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main id="game">
+    <canvas id="scene" aria-label="Cảnh 3D Đảo Đèn Lồng"></canvas>
+    <header class="heading">
+      <p>Đêm 1 <span>·</span> Đảo Bến</p>
+      <h1>Đảo Đèn Lồng</h1>
+    </header>
+    <section class="hud" aria-label="Trạng thái trò chơi">
+      <div><p>Lửa của Mây</p><output id="flames"></output></div>
+      <div><p>Đom đóm</p><output id="carried"></output></div>
+      <div><p>Đèn lớn</p><output id="lit"></output></div>
+      <div><p>Đến bình minh</p><output id="time"></output></div>
+      <div><p>Điểm</p><output id="score"></output></div>
+    </section>
+    <aside class="map-panel" aria-label="Bản đồ các đèn">
+      <canvas id="map" width="240" height="240"></canvas>
+    </aside>
+    <p id="prompt" class="prompt" hidden></p>
+    <p id="notice" class="notice" role="status"></p>
+    <footer class="controls" aria-label="Điều khiển">
+      <span><kbd>WASD</kbd> Đi</span>
+      <span><kbd>Space</kbd> Nhảy</span>
+      <span><kbd>E</kbd> Nạp đèn</span>
+      <span><kbd>Q</kbd> Tỏa sáng</span>
+      <span><kbd>Chuột</kbd> Xoay góc nhìn</span>
+    </footer>
+    <section id="overlay" class="overlay" aria-labelledby="overlay-title">
+      <div class="dialog">
+        <p class="night">Đêm 1 · Đảo Bến</p>
+        <h2 id="overlay-title">Đảo Đèn Lồng</h2>
+        <p id="overlay-text">Cùng Mây gom đom đóm và thắp lại năm Đèn Lồng Lớn trước khi trời sáng.</p>
+        <button type="button" id="start" disabled>Vào đảo</button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/game.js"></script>
+</body>
+</html>
